@@ -1,4 +1,3 @@
-# API Performance Testing Framework
 
 A simple and powerful performance testing framework using k6 for API endpoints.
 
