@@ -1,0 +1,13 @@
+# Performance Testing Framework .gitignore
+
+# Environment files
+.env
+
+# Test results
+results/
+*.json
+*.csv
+
+# OS files
+.DS_Store
+*.log
