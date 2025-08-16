@@ -1,19 +1,36 @@
+# 🚀 Scalable API Performance Testing Framework
 
-A simple and powerful performance testing framework using k6 for API endpoints.
+A powerful and scalable performance testing framework using k6 for API endpoints. This framework is designed to easily scale from testing a single endpoint to hundreds of endpoints without rewriting tests.
 
-## 🎯 What This Framework Tests
+## 🎯 Key Features
 
-**Current Test**: `GET /users/me`  
-**API Endpoint**: `https://dev-api.acexr.com/platform-services/v2/users/me`  
-**Load**: 100 concurrent users over 1 minute  
-**Validation**: Checks for successful HTTP 200 responses  
+- **🔧 Configuration-Driven**: Define endpoints once, test everywhere
+- **📊 Multiple Test Suites**: Smoke, Load, Stress, Spike, Endurance, and Soak tests
+- **🔄 Batch Testing**: Test multiple endpoints simultaneously
+- **⚡ Easy Scaling**: Add new endpoints in minutes, not hours
+- **🎭 Flexible Authentication**: Support for authenticated and public endpoints
+- **📈 Comprehensive Reporting**: Built-in validation and performance metrics
 
-## 🚀 Quick Start (5 minutes)
+## 🏗️ Architecture Overview
+
+```
+config/
+├── endpoints.js          # Central endpoint definitions
+└── test-suites.js       # Test suite configurations
+
+scripts/
+├── endpoint-test.js      # Generic endpoint tester
+├── batch-test-runner.js  # Batch testing engine
+├── add-endpoint.js       # Endpoint addition utility
+└── run-*.sh             # Execution scripts
+```
+
+## 🚀 Quick Start
 
 ### Prerequisites
 - **k6 installed** (see installation guide below)
+- **Node.js** (for endpoint management utilities)
 - **Basic terminal knowledge**
-- **Your API endpoint accessible**
 
 ### Step 1: Install k6
 
@@ -39,195 +56,220 @@ Visit: https://k6.io/docs/getting-started/installation/
 ```bash
 k6 version
 ```
-You should see something like: `k6 v0.45.0 (go1.21.0, darwin/arm64)`
 
 ### Step 3: Run Your First Test
 ```bash
-# Navigate to the project directory
-cd /Users/ACox/api-performance-tests
+# Test a single endpoint
+./scripts/run-endpoint-test.sh users-me smoke
 
-# Make the script executable (first time only)
-chmod +x scripts/run.sh
+# Test all endpoints with smoke test
+./scripts/run-batch-test.sh smoke
 
-# Run the performance test
-./scripts/run.sh
+# Test specific endpoints with custom configuration
+BATCH_ENDPOINTS='users-me,health-check' BATCH_TEST_SUITE=load ./scripts/run-batch-test.sh custom
 ```
 
-## 📊 Understanding Your Test Results
+## 🔧 Adding New Endpoints
 
-### What You'll See During Execution
-```
-🚀 Running k6 performance test...
-          /\      |‾‾| /‾‾/   /‾‾/     
-     /\  /  \     |  |/  /   /  /      
-    /  \/    \    |     (   /   ‾‾\    
-   /          \   |  |\  \ |  (‾)  |   
-  / __________ \  |__| \__\ \_____/ .io
-
-  execution: local
-     script: scripts/main.js
-     output: -
-     duration: 1m0s, iterations: -
-     max VUs: 100, max iterations: -
-
-  scenarios: (100.00%) 1 scenario, 100 max VUs
-   * default: 100 iterations sharing 100 VUs
-     (exec: default, gracefulStop: 30s, startTime: 0s, gracefulStop: 30s)
-
-  data_received........: 1.2MB  20kB/s
-  data_sent............: 45kB   750B/s
-  http_req_blocked.....: avg=1.2ms   min=0s      med=0s      max=50ms    p(90)=0s      p(95)=0s      
-  http_req_connecting..: avg=0s      min=0s      med=0s      max=0s      p(90)=0s      p(95)=0s      
-  http_req_duration....: avg=45.2ms  min=12ms    med=42ms    max=120ms   p(90)=85ms    p(95)=98ms    
-  http_req_failed......: 0.00%  ✓
-  http_req_receiving...: avg=0.5ms   min=0s      med=0s      max=10ms    p(90)=0s      p(95)=0s      
-  http_req_sending.....: avg=0.2ms   min=0s      med=0s      max=5ms     p(90)=0s      p(95)=0s      
-  http_req_waiting.....: avg=44.5ms  min=12ms    med=42ms    max=120ms   p(90)=85ms    p(95)=98ms    
-  http_reqs............: 1,320  22.0/s
-  iteration_duration...: avg=1.05s   min=1s      med=1s      max=1.1s    p(90)=1.1s    p(95)=1.1s    
-  iterations...........: 1,320  22.0/s
-  vus.................: 100     min=100   max=100
-  vus_max............. 100     min=100   max=100
+### Method 1: Interactive Mode (Recommended)
+```bash
+cd scripts
+node add-endpoint.js
 ```
 
-### Key Metrics Explained
+### Method 2: Command Line
+```bash
+node add-endpoint.js get-orders GET /api/v1/orders https://api.example.com
+```
 
-- **`http_req_duration`**: Response time (P95 < 100ms is good)
+### Method 3: Manual Configuration
+Edit `config/endpoints.js` and add your endpoint:
+
+```javascript
+'get-orders': {
+  name: 'Get Orders',
+  method: 'GET',
+  path: '/api/v1/orders',
+  baseUrl: 'https://api.example.com',
+  requiresAuth: true,
+  testConfig: {
+    loadTest: {
+      vus: 100,
+      duration: '1m',
+      thresholds: {
+        'http_req_duration': ['p95<100'],
+        'http_req_failed': ['rate<0.01']
+      }
+    }
+  },
+  validation: {
+    expectedStatus: 200,
+    responseTime: 500,
+    requiredHeaders: ['Content-Type']
+  }
+}
+```
+
+## 🧪 Available Test Suites
+
+| Test Suite | Purpose | Typical Load | Duration |
+|------------|---------|--------------|----------|
+| **Smoke** | Quick validation | 1 user | 10s |
+| **Load** | Normal expected load | 50-100 users | 1-2m |
+| **Stress** | Find breaking points | Ramp up to 200+ users | 20m+ |
+| **Spike** | Sudden load increases | 10 → 200 → 10 users | 5m |
+| **Endurance** | Long-term stability | 25 users | 30m |
+| **Soak** | Extended low-load | 10 users | 2h+ |
+
+## 📊 Running Tests
+
+### Single Endpoint Testing
+```bash
+# Basic usage
+./scripts/run-endpoint-test.sh [endpoint] [test-suite]
+
+# Examples
+./scripts/run-endpoint-test.sh users-me smoke
+./scripts/run-endpoint-test.sh health-check load
+./scripts/run-endpoint-test.sh create-user stress
+```
+
+### Batch Testing
+```bash
+# Test all endpoints with smoke test
+./scripts/run-batch-test.sh smoke
+
+# Test GET endpoints with load test
+./scripts/run-batch-test.sh getEndpointsLoad
+
+# Test POST endpoints with stress test
+./scripts/run-batch-test.sh postEndpointsStress
+
+# Custom batch configuration
+BATCH_ENDPOINTS='users-me,health-check' BATCH_TEST_SUITE=load ./scripts/run-batch-test.sh custom
+```
+
+### Authentication
+For endpoints requiring authentication, set the `AUTH_TOKEN` environment variable:
+
+```bash
+export AUTH_TOKEN='your-jwt-token-here'
+./scripts/run-endpoint-test.sh users-me load
+```
+
+## 🔍 Understanding Test Results
+
+### Key Metrics
+- **`http_req_duration`**: Response time (P95 < 100ms is excellent)
 - **`http_req_failed`**: Error rate (0.00% is perfect)
 - **`http_reqs`**: Total requests made
 - **`iterations`**: Total test iterations completed
 - **`vus`**: Virtual Users (concurrent users simulated)
 
-## 🔧 Customizing Your Tests
+### Performance Targets
+| Metric | Excellent | Good | Acceptable | Poor |
+|--------|-----------|------|------------|------|
+| Response Time (P95) | < 100ms | < 200ms | < 500ms | > 1000ms |
+| Error Rate | < 0.1% | < 1% | < 5% | > 10% |
 
-### Change Load Parameters
-Edit `scripts/main.js` and modify these lines:
+## 🎛️ Advanced Configuration
 
-```javascript
-export const options = {
-  vus: 50,           // Change from 100 to 50 users
-  duration: "2m"      // Change from "1m" to "2m"
-};
-```
-
-### Test Different Endpoints
-Change the URL in `scripts/main.js`:
+### Custom Test Suites
+Edit `config/test-suites.js` to add new test patterns:
 
 ```javascript
-// Change this line:
-const response = http.get("https://dev-api.acexr.com/platform-services/v2/users/me");
-
-// To test a different endpoint:
-const response = http.get("https://dev-api.acexr.com/platform-services/v2/api/orders");
+customLoad: {
+  name: 'Custom Load Pattern',
+  description: 'Custom load testing pattern',
+  config: {
+    stages: [
+      { duration: '2m', target: 50 },
+      { duration: '5m', target: 50 },
+      { duration: '2m', target: 0 }
+    ],
+    thresholds: {
+      'http_req_duration': ['p95<300'],
+      'http_req_failed': ['rate<0.02']
+    }
+  }
+}
 ```
 
-### Add More Validation Checks
-Enhance the check function:
-
-```javascript
-check(response, { 
-  "status is 200": (r) => r.status === 200,
-  "response time < 500ms": (r) => r.timings.duration < 500,
-  "has JSON response": (r) => r.headers['Content-Type'].includes('json')
-});
-```
-
-## 🚨 Troubleshooting Common Issues
-
-### "k6: command not found"
-**Problem**: k6 is not installed or not in your PATH  
-**Solution**: 
+### Environment-Specific Configurations
 ```bash
-# Install k6 (see installation guide above)
-# Or check if it's in a different location
-which k6
+# Test against staging environment
+BASE_URL=https://staging-api.example.com ./scripts/run-endpoint-test.sh users-me load
+
+# Custom test duration
+DURATION=5m ./scripts/run-endpoint-test.sh health-check endurance
 ```
 
-### "Permission denied" on run.sh
-**Problem**: Script is not executable  
-**Solution**: 
+## 📈 Scaling Your Tests
+
+### Adding Multiple Endpoints
+1. **Use the utility script**: `node add-endpoint.js`
+2. **Copy existing endpoint**: Duplicate and modify in `config/endpoints.js`
+3. **Batch import**: Create a script to import from API documentation
+
+### Testing Different Environments
 ```bash
-chmod +x scripts/run.sh
+# Development
+./scripts/run-batch-test.sh smoke
+
+# Staging
+STAGE=staging ./scripts/run-batch-test.sh load
+
+# Production
+STAGE=prod ./scripts/run-batch-test.sh smoke
 ```
 
-### "Connection refused" or "timeout"
-**Problem**: API endpoint is not accessible  
-**Solutions**:
-1. Check if the API is running
-2. Verify the URL is correct
-3. Check network connectivity
-4. Ensure no firewall blocking
-
-### "HTTP 401 Unauthorized"
-**Problem**: API requires authentication  
-**Solution**: You'll need to modify the script to include authentication headers
-
-### "HTTP 404 Not Found"
-**Problem**: Endpoint doesn't exist  
-**Solution**: Verify the API endpoint path is correct
-
-### Test runs but shows 0 requests
-**Problem**: API might be blocking requests or returning errors  
-**Solution**: 
-1. Check the API logs
-2. Verify the endpoint is working manually
-3. Check for rate limiting
-
-## 📈 Performance Targets & Best Practices
-
-### Response Time Guidelines
-- **Excellent**: P95 < 100ms
-- **Good**: P95 < 200ms  
-- **Acceptable**: P95 < 500ms
-- **Poor**: P95 > 1000ms
-
-### Error Rate Guidelines
-- **Excellent**: < 0.1%
-- **Good**: < 1%
-- **Acceptable**: < 5%
-- **Poor**: > 10%
-
-### Load Testing Best Practices
-1. **Start Small**: Begin with 10-20 users, then scale up
-2. **Monitor Resources**: Watch CPU, memory, and network usage
-3. **Test in Stages**: Ramp up gradually to find breaking points
-4. **Use Realistic Data**: Test with data similar to production
-5. **Run Multiple Times**: Performance can vary between runs
-
-## 🔍 Advanced Usage
-
-### Running with Custom Parameters
+### CI/CD Integration
 ```bash
-# Test with 50 users for 2 minutes
-k6 run --vus 50 --duration 2m scripts/main.js
+# Run smoke tests in CI
+./scripts/run-batch-test.sh smoke
 
-# Test with specific iterations
-k6 run --iterations 1000 scripts/main.js
+# Run load tests in staging
+./scripts/run-batch-test.sh getEndpointsLoad
 
-# Test with custom thresholds
-k6 run --thresholds "http_req_duration:p95<100" scripts/main.js
+# Run stress tests before deployment
+./scripts/run-batch-test.sh postEndpointsStress
 ```
 
-### Output Options
+## 🚨 Troubleshooting
+
+### Common Issues
+
+#### "Endpoint not found"
+- Check `config/endpoints.js` for correct endpoint key
+- Use `./scripts/run-endpoint-test.sh --help` to see available endpoints
+
+#### "Authentication required"
+- Set `AUTH_TOKEN` environment variable
+- Check if endpoint requires authentication in configuration
+
+#### "Test runs but shows 0 requests"
+- Verify API endpoint is accessible
+- Check for rate limiting or blocking
+- Review API logs for errors
+
+#### "Permission denied on scripts"
 ```bash
-# Save results to JSON file
-k6 run --out json=results.json scripts/main.js
-
-# Save results to CSV file  
-k6 run --out csv=results.csv scripts/main.js
-
-# Multiple outputs
-k6 run --out json=results.json --out csv=results.csv scripts/main.js
+chmod +x scripts/*.sh
 ```
 
-### Environment Variables
-```bash
-# Set custom base URL
-BASE_URL=https://staging-api.acexr.com k6 run scripts/main.js
+### Getting Help
+1. **Check this README** for common solutions
+2. **Review k6 documentation**: https://k6.io/docs/
+3. **Check endpoint configuration** in `config/endpoints.js`
+4. **Verify API endpoints** are working manually first
 
-# Set custom duration
-DURATION=5m k6 run scripts/main.js
-```
+## 🔮 Future Enhancements
+
+- **GraphQL Support**: Native GraphQL endpoint testing
+- **Database Validation**: Verify data integrity during tests
+- **Advanced Reporting**: HTML reports with charts and graphs
+- **Load Profile Import**: Import load patterns from monitoring tools
+- **Distributed Testing**: Run tests across multiple machines
 
 ## 📚 Learning Resources
 
@@ -242,32 +284,41 @@ DURATION=5m k6 run scripts/main.js
 - **Spike Testing**: Testing sudden load increases
 - **Endurance Testing**: Testing over long periods
 
-### Community & Support
-- **k6 Community**: https://community.k6.io/
-- **GitHub Issues**: https://github.com/grafana/k6/issues
-- **Stack Overflow**: Tag questions with `k6`
+## 🎉 You're Ready!
 
-## 🎯 Next Steps
+You now have a **scalable performance testing framework** that can grow with your API:
 
-1. **Run your first test** using the steps above
-2. **Customize the endpoint** to test your specific API
-3. **Add authentication** if your API requires it
-4. **Experiment with different load patterns**
-5. **Set up monitoring** for ongoing performance tracking
+1. **Start small**: Test one endpoint with smoke test
+2. **Add endpoints**: Use the utility script to add new endpoints
+3. **Scale up**: Run batch tests across multiple endpoints
+4. **Customize**: Adjust test suites and configurations
+5. **Automate**: Integrate with CI/CD pipelines
 
-## 🆘 Getting Help
-
-If you encounter issues:
-
-1. **Check this README** for common solutions
-2. **Review k6 documentation** for detailed explanations
-3. **Check the k6 community** for similar issues
-4. **Verify your API endpoint** is working manually first
+**Happy Testing! 🚀**
 
 ---
 
-## 🎉 You're Ready!
+## 📋 Quick Reference
 
-You now have a working performance testing framework. Start with the Quick Start guide above, and you'll be running your first API performance test in minutes!
+### Common Commands
+```bash
+# Test single endpoint
+./scripts/run-endpoint-test.sh [endpoint] [test-suite]
 
-**Happy Testing! 🚀**
+# Test all endpoints
+./scripts/run-batch-test.sh smoke
+
+# Add new endpoint
+node scripts/add-endpoint.js
+
+# Help
+./scripts/run-endpoint-test.sh --help
+./scripts/run-batch-test.sh --help
+```
+
+### File Locations
+- **Endpoint configs**: `config/endpoints.js`
+- **Test suites**: `config/test-suites.js`
+- **Test scripts**: `scripts/endpoint-test.js`
+- **Batch runner**: `scripts/batch-test-runner.js`
+- **Utility scripts**: `scripts/add-endpoint.js`
