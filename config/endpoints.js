@@ -14,7 +14,7 @@ export const endpoints = {
         vus: 100,
         duration: '1m',
         thresholds: {
-          'http_req_duration': ['p95<100'],
+          'http_req_duration': ['p(95)<100'],
           'http_req_failed': ['rate<0.01']
         }
       },
@@ -41,7 +41,7 @@ export const endpoints = {
         vus: 50,
         duration: '2m',
         thresholds: {
-          'http_req_duration': ['p95<200'],
+          'http_req_duration': ['p(95)<200'],
           'http_req_failed': ['rate<0.01']
         }
       },
@@ -57,6 +57,7 @@ export const endpoints = {
     }
   },
 
+  //Alternate with HEAD Method
   'health-check': {
     name: 'Health Check',
     method: 'GET',
@@ -68,7 +69,7 @@ export const endpoints = {
         vus: 200,
         duration: '5m',
         thresholds: {
-          'http_req_duration': ['p95<50'],
+          'http_req_duration': ['p(95)<50'],
           'http_req_failed': ['rate<0.001']
         }
       },
@@ -96,7 +97,7 @@ export const endpoints = {
         vus: 30,
         duration: '1m',
         thresholds: {
-          'http_req_duration': ['p95<300'],
+          'http_req_duration': ['p(95)<300'],
           'http_req_failed': ['rate<0.05']
         }
       },
@@ -123,7 +124,7 @@ export const endpoints = {
         vus: 20,
         duration: '1m',
         thresholds: {
-          'http_req_duration': ['p95<250'],
+          'http_req_duration': ['p(95)<250'],
           'http_req_failed': ['rate<0.03']
         }
       },
@@ -137,7 +138,34 @@ export const endpoints = {
       responseTime: 800,
       requiredHeaders: ['Content-Type']
     }
+  },
+
+'auth/signin': {
+  name: 'Sign In',
+  method: 'POST',
+  path: '/platform-services/v2/auth/signin',
+  baseUrl: 'https://dev-api.acexr.com',
+  requiresAuth: true,
+  testConfig: {
+    loadTest: {
+      vus: 20,
+      duration: '1m',
+      thresholds: {
+        'http_req_duration': ['p95<250'],
+        'http_req_failed': ['rate<0.03']
+      }
+    },
+    smokeTest: {
+      vus: 1,
+      duration: '10s'
+    }
+  },
+  validation: {
+    expectedStatus: 200,
+    responseTime: 800,
+    requiredHeaders: ['Content-Type']
   }
+}
 };
 
 // Helper function to get endpoint by key

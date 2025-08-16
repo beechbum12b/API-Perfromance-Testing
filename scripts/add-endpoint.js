@@ -8,6 +8,17 @@
 const fs = require('fs');
 const path = require('path');
 
+// Environment configurations
+const environments = {
+  dev: 'https://dev-api.acexr.com/platform-services/v2',
+  staging: 'https://staging-api.acexr.com',
+  prod: 'https://api.acexr.com',
+  local: 'http://localhost:3000'
+};
+
+// Default environment
+const DEFAULT_ENV = 'dev';
+
 // Colors for console output
 const colors = {
   reset: '\x1b[0m',
@@ -31,15 +42,24 @@ function showUsage() {
   log('  endpoint-key  Unique identifier for the endpoint (e.g., "get-orders")', 'reset');
   log('  method        HTTP method (GET, POST, PUT, PATCH, DELETE)', 'reset');
   log('  path          API path (e.g., "/api/v1/orders")', 'reset');
-  log('  base-url      Base URL (e.g., "https://api.example.com")', 'reset');
+  log('  base-url      Base URL or environment (e.g., "https://api.example.com" or "dev")', 'reset');
   log('');
   log('Examples:', 'cyan');
   log('  node add-endpoint.js get-orders GET /api/v1/orders https://api.example.com', 'reset');
-  log('  node add-endpoint.js create-order POST /api/v1/orders https://api.example.com', 'reset');
-  log('  node add-endpoint.js update-order PATCH /api/v1/orders/123 https://api.example.com', 'reset');
+  log('  node add-endpoint.js create-order POST /api/v1/orders dev', 'reset');
+  log('  node add-endpoint.js update-order PATCH /api/v1/orders/123 staging', 'reset');
+  log('');
+  log('Environment shortcuts:', 'cyan');
+  log('  dev           -> https://dev-api.acexr.com', 'reset');
+  log('  staging       -> https://staging-api.acexr.com', 'reset');
+  log('  prod          -> https://api.acexr.com', 'reset');
+  log('  local         -> http://localhost:3000', 'reset');
   log('');
   log('Interactive mode:', 'cyan');
   log('  node add-endpoint.js', 'reset');
+  log('');
+  log('Show current environments:', 'cyan');
+  log('  node add-endpoint.js --envs', 'reset');
   log('');
 }
 
@@ -61,13 +81,19 @@ function prompt(question) {
 function generateEndpointConfig(endpointKey, method, path, baseUrl) {
   const methodUpper = method.toUpperCase();
   
+  // Resolve base URL from environment shortcuts
+  let resolvedBaseUrl = baseUrl;
+  if (environments[baseUrl]) {
+    resolvedBaseUrl = environments[baseUrl];
+  }
+  
   // Default test configurations based on method
   const defaultTestConfig = {
     loadTest: {
       vus: methodUpper === 'GET' ? 100 : 50,
       duration: '1m',
       thresholds: {
-        'http_req_duration': [`p95<${methodUpper === 'GET' ? 100 : 300}`],
+        'http_req_duration': [`p(95)<${methodUpper === 'GET' ? 100 : 300}`],
         'http_req_failed': ['rate<0.01']
       }
     },
@@ -93,7 +119,7 @@ function generateEndpointConfig(endpointKey, method, path, baseUrl) {
     name: `${methodUpper} ${path.split('/').pop() || 'Resource'}`,
     method: methodUpper,
     path: path,
-    baseUrl: baseUrl,
+    baseUrl: resolvedBaseUrl,
     requiresAuth: methodUpper !== 'GET' || path.includes('users') || path.includes('profile'),
     testConfig: defaultTestConfig,
     validation: defaultValidation
@@ -165,8 +191,6 @@ function validateInput(endpointKey, method, path, baseUrl) {
 
   if (!baseUrl || baseUrl.trim() === '') {
     errors.push('Base URL is required');
-  } else if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-    errors.push('Base URL must start with http:// or https://');
   }
 
   return errors;
@@ -180,7 +204,17 @@ async function interactiveMode() {
   const endpointKey = await prompt('Enter endpoint key (e.g., "get-orders"): ');
   const method = await prompt('Enter HTTP method (GET, POST, PUT, PATCH, DELETE): ');
   const path = await prompt('Enter API path (e.g., "/api/v1/orders"): ');
-  const baseUrl = await prompt('Enter base URL (e.g., "https://api.example.com"): ');
+  
+  // Show available environments
+  log('');
+  log('Available environments:', 'cyan');
+  Object.entries(environments).forEach(([env, url]) => {
+    log(`  ${env.padEnd(10)} -> ${url}`, 'reset');
+  });
+  log('');
+  
+  const baseUrlInput = await prompt(`Enter base URL or environment (default: ${DEFAULT_ENV}): `);
+  const baseUrl = baseUrlInput.trim() || DEFAULT_ENV;
 
   log('');
   return { endpointKey, method, path, baseUrl };
@@ -188,6 +222,21 @@ async function interactiveMode() {
 
 async function main() {
   let endpointKey, method, path, baseUrl;
+
+  // Check for --envs flag to show environments
+  if (process.argv.includes('--envs')) {
+    log('🌍 Current Environment Configuration:', 'cyan');
+    log('====================================', 'cyan');
+    log('');
+    Object.entries(environments).forEach(([env, url]) => {
+      const isDefault = env === DEFAULT_ENV ? ' (default)' : '';
+      log(`${env.padEnd(10)} -> ${url}${isDefault}`, 'reset');
+    });
+    log('');
+    log(`Default environment: ${DEFAULT_ENV}`, 'blue');
+    log('');
+    process.exit(0);
+  }
 
   if (process.argv.length === 5) {
     // Command line arguments provided
@@ -222,6 +271,12 @@ async function main() {
   log('📋 Generated endpoint configuration:', 'cyan');
   log(JSON.stringify(endpointConfig, null, 2), 'reset');
   log('');
+  
+  // Show environment info if shortcut was used
+  if (environments[baseUrl]) {
+    log(`ℹ️  Environment shortcut "${baseUrl}" resolved to: ${environments[baseUrl]}`, 'blue');
+    log('');
+  }
 
   // Confirm before adding
   const confirm = await prompt('Add this endpoint to the configuration? (y/N): ');

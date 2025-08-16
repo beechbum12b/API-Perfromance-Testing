@@ -76,7 +76,7 @@ export const options = {
   thresholds: {
     ...testSuites[batch.testSuite].config.thresholds,
     // Add batch-specific thresholds
-    'http_req_duration': ['p95<1000'],
+    'http_req_duration': ['p(95)<1000'],
     'http_req_failed': ['rate<0.05']
   }
 };

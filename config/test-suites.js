@@ -23,7 +23,7 @@ export const testSuites = {
       vus: 50,
       duration: '2m',
       thresholds: {
-        'http_req_duration': ['p95<500'],
+        'http_req_duration': ['p(95)<500'],
         'http_req_failed': ['rate<0.01']
       }
     }
@@ -44,7 +44,7 @@ export const testSuites = {
         { duration: '2m', target: 0 }     // Ramp down to 0 users
       ],
       thresholds: {
-        'http_req_duration': ['p95<1000'],
+        'http_req_duration': ['p(95)<1000'],
         'http_req_failed': ['rate<0.05']
       }
     }
@@ -63,7 +63,7 @@ export const testSuites = {
         { duration: '1m', target: 10 }    // Back to normal
       ],
       thresholds: {
-        'http_req_duration': ['p95<2000'],
+        'http_req_duration': ['p(95)<2000'],
         'http_req_failed': ['rate<0.10']
       }
     }
@@ -77,7 +77,7 @@ export const testSuites = {
       vus: 25,
       duration: '30m',
       thresholds: {
-        'http_req_duration': ['p95<500'],
+        'http_req_duration': ['p(95)<500'],
         'http_req_failed': ['rate<0.01']
       }
     }
@@ -91,7 +91,7 @@ export const testSuites = {
       vus: 10,
       duration: '2h',
       thresholds: {
-        'http_req_duration': ['p95<300'],
+        'http_req_duration': ['p(95)<300'],
         'http_req_failed': ['rate<0.005']
       }
     }
